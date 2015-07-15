@@ -1,35 +1,49 @@
 import logging
-import threading
+from threading import Thread
 import time
+from queue import *
+import feedparser
+from rssreaderparser import *
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s (%(threadName)-2s) %(message)s',
                     )
+pool  = Queue()
+links = []
 
-def consumer(cond):
-    """wait for the condition and use the resource"""
-    logging.debug('Starting consumer thread')
-    t = threading.currentThread()
-    with cond:
-        cond.wait()
-        logging.debug('Resource is available to consumer')
+#load all rss links
+def load():
+    import csv
+    with open('rss.csv', newline='') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=' ', quotechar='|')
+        for row in spamreader:
+            links.append(row)
+load()
 
-def producer(cond):
-    """set up the resource to be used by the consumer"""
-    logging.debug('Starting producer thread')
-    with cond:
-        logging.debug('Making resource available')
-        cond.notifyAll()
+#create function worker for get rss
+def getRSS( link):
+    pubdate = None
+    while True:
+        rss = feedparser.parse(link[0])
+        entries = rss.entries
+        father = RssObject(rss)
+        for entry in entries:
+            rssentry = RssEntrie(entry, father)
+            if pubdate is not None:
+                print(pubdate > entry.published_parsed)
+                if pubdate > entry.published_parsed:
+                    pool.put(rssentry)
+                    pubdate = entry.published_parsed
+            else:
+                pool.put(rssentry)
+                pubdate = entry.published_parsed
+        print(pool.qsize())
 
-condition = threading.Condition()
-c1 = threading.Thread(name='c1', target=consumer, args=(condition,))
-c2 = threading.Thread(name='c2', target=consumer, args=(condition,))
-p = threading.Thread(name='p', target=producer, args=(condition,))
+# create threads with object
+def producers(links):
+    for link in links:
+        worker = Thread(target=getRSS, args=(link,))
+ #       worker.setDaemon(True)
+        worker.start()
 
-c1.start()
-time.sleep(2)
-c2.start()
-time.sleep(2)
-p.start()
-
-
+producers(links)
