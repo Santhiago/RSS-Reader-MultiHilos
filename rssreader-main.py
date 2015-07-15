@@ -6,7 +6,7 @@ from PyQt4.QtWebKit import QWebView
 
 rssreader_main = uic.loadUiType('./rssreader-main.ui')[0]
 class RssReaderMain(QMainWindow, rssreader_main):
-    
+
     def __init__(self,parent=None):
         QMainWindow.__init__(self,parent)
         self.setupUi(self)
