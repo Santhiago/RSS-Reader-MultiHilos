@@ -31,7 +31,8 @@ class RssEntrie():
     def __init__(self, entry, father):
         self.entry = entry
         self.father = father
-        getData()
+        self.getData()
+        print(self.getHtml())
 
     def getData(self):
         self.title = self.entry.title
@@ -46,7 +47,7 @@ class RssEntrie():
         style = ''
         div = '<div style ="'+style+'"><div class="main"><div class="title">'
         div = div + self.title +'</div><div class="content">'
-        div = div + self.media_content + '<br>' + self.description
+        div = div + '<br>' + self.description
         div = div + '<a href="'+ self.href+'">'+'</div>'
         div = div + '</div></div>'
         return div
