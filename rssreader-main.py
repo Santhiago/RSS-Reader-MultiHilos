@@ -53,7 +53,6 @@ def producers(links):
         worker = Thread(target=getRSS, args=(link,))
  #       worker.setDaemon(True)
         worker.start()
-
 '''
     CONSUMERS
 '''
@@ -66,11 +65,21 @@ class RssReaderMain(QMainWindow, rssreader_main):
         self.process_getrss = ProcessGetRss(self)
         self.initialize_()
 
+    def comboBoxChanged(self):
+        url = (self.comboBox.itemData(self.cbo_cliente.currentIndex()))
+        #filter function
+
     #Initialize Element of GUI
     def initialize_(self):
+        #TODO fill combobox with rss links (links list)
+        self.comboBox.clear()
+        self.comboBox.currentIndexChanged.connect(self.comboBoxChanged)
+        i = 0
+        for link in links:
+            i = i + 1
+            self.comboBox.addItem(link[0],i)
 
         #Temporally Put 'Manual' in pool(queue) rss object
-
         self.rssweb = QWebView(loadProgress = self.rssweb_progress.setValue, \
                                loadFinished = self.rssweb_progress.hide, \
                                loadStarted = self.rssweb_progress.show, \
@@ -84,12 +93,11 @@ class RssReaderMain(QMainWindow, rssreader_main):
 
 
     def start_process(self,event):
-        print (event)
         self.rss_terminal.append('[Thread1]:' + str(event))
         self.d = self.d + 1
         print(self.d)
 
-#Get Rss of Pool for parcer and show
+#Get Rss of Pool for parser and show
 class ProcessGetRss(QThread):
 
     def __init__(self,parent=None):
@@ -104,8 +112,8 @@ class ProcessGetRss(QThread):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    load()
     rssreader_main = RssReaderMain()
     rssreader_main.show()
-    load()
     producers(links)
     sys.exit(app.exec_())
