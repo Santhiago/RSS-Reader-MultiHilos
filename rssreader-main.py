@@ -3,7 +3,6 @@ from PyQt4 import uic
 from PyQt4.QtGui import *
 from PyQt4.QtCore import QUrl,SIGNAL,QThread
 from PyQt4.QtWebKit import QWebView
-from rssreader_parser import *
 import logging
 from threading import Thread
 import time
@@ -47,7 +46,6 @@ def getRSS( link):
             else:
                 pool.put(rssentry)
                 pubdate = entry.published_parsed
-        print(pool.qsize())
 
 # create threads with object
 def producers(links):
@@ -72,11 +70,6 @@ class RssReaderMain(QMainWindow, rssreader_main):
     def initialize_(self):
 
         #Temporally Put 'Manual' in pool(queue) rss object
-        self.rss = RssObject(url)
-        self.rss = self.rss.getFeed
-        pool.put(self.rss)
-
-
 
         self.rssweb = QWebView(loadProgress = self.rssweb_progress.setValue, \
                                loadFinished = self.rssweb_progress.hide, \
