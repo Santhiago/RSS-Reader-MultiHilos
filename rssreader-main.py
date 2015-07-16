@@ -178,7 +178,7 @@ class ConsumerRSS(QThread):
             if not pool.empty():
                tmp = pool.get()
                pool_cmb.append(tmp)
-               print(len(pool_cmb))
+               #print(len(pool_cmb))
                self.emit(SIGNAL("event"), tmp.title) #Emit signal event
 
 
