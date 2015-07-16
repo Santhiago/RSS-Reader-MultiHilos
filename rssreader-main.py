@@ -26,7 +26,6 @@ def load():
         for row in spamreader:
             links.append(row)
 
-
 '''
     PRODUCERS
 '''
@@ -45,13 +44,14 @@ def getRSS( link):
                     pubdate = entry.published_parsed
             else:
                 pool.put(rssentry)
+
                 pubdate = entry.published_parsed
 
 # create threads with object
 def producers(links):
     for link in links:
         worker = Thread(target=getRSS, args=(link,))
- #       worker.setDaemon(True)
+#       worker.setDaemon(True)
         worker.start()
 '''
     CONSUMERS
@@ -59,6 +59,14 @@ def producers(links):
 
 class RssReaderMain(QMainWindow, rssreader_main):
     d = 0
+    div = ''
+    html = ''
+    div_end = '</ul></div></div></div><script\
+            type="text/javascript"></script></body></html>'
+    with open('style.html','r') as style:
+        div = style.read()
+    html = div
+
     def __init__(self,parent=None):
         QMainWindow.__init__(self,parent)
         self.setupUi(self)
@@ -66,7 +74,7 @@ class RssReaderMain(QMainWindow, rssreader_main):
         self.initialize_()
 
     def comboBoxChanged(self):
-        url = (self.comboBox.itemData(self.cbo_cliente.currentIndex()))
+        url = (self.comboBox.itemData(self.comboBox.currentIndex()))
         #filter function
 
     #Initialize Element of GUI
@@ -94,8 +102,9 @@ class RssReaderMain(QMainWindow, rssreader_main):
 
     def start_process(self,event):
         self.rss_terminal.append('[Thread1]:' + str(event))
+       # self.html = self.div
+        self.rssweb.setHtml(event.getHtml())
         self.d = self.d + 1
-        print(self.d)
 
 #Get Rss of Pool for parser and show
 class ProcessGetRss(QThread):

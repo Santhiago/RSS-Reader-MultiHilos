@@ -32,7 +32,6 @@ class RssEntrie():
         self.entry = entry
         self.father = father
         self.getData()
-        print(self.getHtml())
 
     def getData(self):
         self.title = self.entry.title
@@ -45,11 +44,17 @@ class RssEntrie():
 
     def getHtml(self):
         style = ''
-        div = '<div style ="'+style+'"><div class="main"><div class="title">'
-        div = div + self.title +'</div><div class="content">'
-        div = div + '<br>' + self.description
-        div = div + '<a href="'+ self.href+'">'+'</div>'
-        div = div + '</div></div>'
+        print(self.media_content)
+        print(self.media_content[0]['url'])
+        div = '<li><div class="timeline-image">\
+                <img class="img-circle img-responsive"\
+                src="' + self.media_content[0]['url'] + '"></div>'
+        div = div +'<div class="timeline-panel"><div class="timeline-heading">\
+                ' + self.title + '</div>'
+        div = div + '<div class="timeline-body"><p class="text-muted">\
+                ' + self.description
+        div = div + '<br/><a href="'+ self.href+'"></p></div></div>'
+        div = div + '</li>'
         return div
 
 
