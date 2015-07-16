@@ -14,8 +14,10 @@ from rssreaderparser import *
 
 #Call interface
 rssreader_main = uic.loadUiType('./rssreader-main.ui')[0]
-#Pool of data RSS
+#Pool of data producer-consumer RSS
 pool = Queue()
+#Poll of data for show. Use only in consumer
+pool_cmb = []
 #List of url RSS
 links = []
 
@@ -35,54 +37,87 @@ def load():
             #put in list "links"
             links.append(row)
 
-
 '''
     PRODUCERS
 '''
 #create function worker for get rss
-def getRSS(self,link):
+def getRSS(self,link,position):
     pubdate = None
     while True:
-        rss = feedparser.parse(link[0])
-        entries = rss.entries
-        father = RssObject(rss)
+        rss = feedparser.parse(link[0]) #Get data and parse
+        entries = rss.entries #Get Entries from RSS
+        father = RssObject(rss) #Create a RssObject
+
         for entry in entries:
-            rssentry = RssEntrie(entry, father)
+            rssentry = RssEntrie(entry, father) #Create RssEntrie
+            
+            #Only Put in queue feeds News
             if pubdate is not None:
                 if pubdate > entry.published_parsed:
                     pool.put(rssentry)
-                    self.cmb_rss.addItem('rssentry')
-                    
+                     
                     pubdate = entry.published_parsed
             else:
                 pool.put(rssentry)
-                self.cmb_rss.addItem('rssentry')
                 pubdate = entry.published_parsed
 
-# create threads with object
-def producers(self,links):
-    for link in links:
-        worker = Thread(target=getRSS, args=(self,link))
- #       worker.setDaemon(True)
-        worker.start()
+        self.printprocess(position,'Finished')
 
+#Create threads with object
+def producers(self,links):
+    #Get url from links
+    i=1
+    self.cmb_rss.clear()
+    pool_cmb=[]
+
+    for link in links:
+        
+        worker = Thread(target=getRSS, args=(self,link,i)) #Create a Thread for each url
+        #worker.setDaemon(True)
+        worker.start() #Start Thread
+        self.printprocess(i,'Start')
+        i +=1
+
+'''
+    CONSUMERS
+'''
 #Interface Graphics
 class RssReaderMain(QMainWindow, rssreader_main):
-    d = 0
+    div = ''
+    html = ''
+    div_end = '</ul></div></div></div><script\
+            type="text/javascript"></script></body></html>'
+    with open('style.html','r') as style:
+        div = style.read()
+    html = div
+
     def __init__(self,parent=None):
         QMainWindow.__init__(self,parent)
         self.setupUi(self)
         self.process_getrss = ConsumerRSS(self)
         self.initialize_()
 
+
     #Initialize Element of GUI
     def initialize_(self):
+        
+        #Fill combobox with rss links (links list)
+        i = 0
+        
+        '''
+        for link in links:
+            i = i + 1
+            self.cmb_rss.addItem(link[0],i)
+        '''
 
+        #Button Add: call function saveLink()
         self.btn_add.clicked.connect(self.saveLink)
-
+        #Set ComboBox Index to' -1'
         self.cmb_rss.setCurrentIndex(-1)
+        #Put signal to ComboBox Changed Index
         self.cmb_rss.currentIndexChanged['int'].connect(self.chargeHtmlRSS)
-        self.connect(self.process_getrss, SIGNAL("event"), self.start_process)
+        #Put signal for add item in ComboBox
+        self.connect(self.process_getrss, SIGNAL("event"), self.addItem)
 
         #Create to WebView
         self.rssweb = QWebView(loadProgress = self.rssweb_progress.setValue, \
@@ -90,19 +125,23 @@ class RssReaderMain(QMainWindow, rssreader_main):
                                loadStarted = self.rssweb_progress.show, \
                                titleChanged = self.setWindowTitle)
         self.rssweb_progress.hide()
+        #Add WebView to Widget container
         self.rssweb_container.addWidget(self.rssweb)
 
         
-        self.process_getrss.start()
-        load()
-        producers(self,links)
+        producers(self,links) #Start Producer
+        self.process_getrss.start() #Start Comsumer
 
 
-    def start_process(self,event):
-        print (event)
-        self.rss_terminal.append('[Thread' + str(self.d) + ']:' + str(event))
-        self.d = self.d + 1
-        print(self.d)
+    #Print process. How start and finish a Thread Producer
+    def printprocess(self,thread,status):
+        self.rss_terminal.append('[Thread' + str(thread) + ']:' + str(status))
+        #a = logging.debug('[Thread' + str(thread) + ']:' + str(status))
+        #print(a)
+        #self.rssweb.setHtml(event.getHtml())
+
+    def addItem(self,title):
+        self.cmb_rss.addItem(str(title))
 
     #Save url RSS in file "rss.csv"
     def saveLink(self):
@@ -110,16 +149,23 @@ class RssReaderMain(QMainWindow, rssreader_main):
             with open('rss.csv','a') as csvfile:
                  csvfile.write(str(self.txt_url.text()))
             self.txt_url.setText('')
+            load()
+            producers(self,links)
                 
     #Charge Entries of RSS
-    def chargeHtmlRSS(self,text):
-        print( str(text) )
-        self.rssweb.load(QUrl('http://www.google.com'))
+    def chargeHtmlRSS(self,position):
+        html_feed = ''
+        html_feed = pool_cmb[position].getHtml()
+       
+        #url = self.cmb_rss.itemData(int(text))
+
+        self.rssweb.setHtml(html_feed)
 
 
 '''
     CONSUMERS
 '''
+#Get Rss of Pool for parser and show
 class ConsumerRSS(QThread):
 
     def __init__(self,parent=None):
@@ -128,13 +174,17 @@ class ConsumerRSS(QThread):
     #Get Rss of Pool for parcer and show
     def run(self):
         while True:
+            #Get object only when a queue not empty
             if not pool.empty():
                tmp = pool.get()
-               self.emit(SIGNAL("event"), tmp) #Emit signal event
+               pool_cmb.append(tmp)
+               print(len(pool_cmb))
+               self.emit(SIGNAL("event"), tmp.title) #Emit signal event
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    rssreader_main = RssReaderMain()
-    rssreader_main.show()
-    sys.exit(app.exec_())
+    load() #Start read file
+    app = QApplication(sys.argv) #Create application
+    rssreader_main = RssReaderMain() #Create GUI
+    rssreader_main.show() #Show GUI
+    sys.exit(app.exec_()) #Destroy all to finish
